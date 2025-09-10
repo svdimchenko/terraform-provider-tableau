@@ -1,4 +1,6 @@
 # terraform-provider-tableau
+<img width="576" height="384" alt="Tableau_Terraform" src="https://github.com/user-attachments/assets/c5c56641-b18e-4ab1-817a-83e1df0ea9c6" />
+
 Terraform Provider for Tableau
 
 Originally aimed at Tableau Online, but can expand.
