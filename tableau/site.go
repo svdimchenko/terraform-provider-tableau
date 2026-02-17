@@ -31,7 +31,7 @@ type SiteListResponse struct {
 }
 
 func (c *Client) GetSite(siteID string) (*Site, error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/sites", c.ApiUrl), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/sites", c.BaseUrl), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +60,7 @@ func (c *Client) GetSite(siteID string) (*Site, error) {
 
 	for page := pageNumber + 1; page <= totalPageCount; page++ {
 		fmt.Printf("Searching page %d", page)
-		req, err = http.NewRequest("GET", fmt.Sprintf("%s/sites?pageNumber=%d", c.ApiUrl, page), nil)
+		req, err = http.NewRequest("GET", fmt.Sprintf("%s/sites?pageNumber=%d", c.BaseUrl, page), nil)
 		if err != nil {
 			return nil, err
 		}
@@ -99,7 +99,7 @@ func (c *Client) CreateSite(name, contentURL string) (*Site, error) {
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/sites", c.ApiUrl), strings.NewReader(string(newSiteJson)))
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s/sites", c.BaseUrl), strings.NewReader(string(newSiteJson)))
 	if err != nil {
 		return nil, err
 	}
@@ -133,7 +133,7 @@ func (c *Client) UpdateSite(siteID, name, contentURL string) (*Site, error) {
 		return nil, err
 	}
 
-	req, err := http.NewRequest("PUT", fmt.Sprintf("%s/sites/%s", c.ApiUrl, siteID), strings.NewReader(string(newSiteJson)))
+	req, err := http.NewRequest("PUT", fmt.Sprintf("%s/sites/%s", c.BaseUrl, siteID), strings.NewReader(string(newSiteJson)))
 	if err != nil {
 		return nil, err
 	}
@@ -154,7 +154,7 @@ func (c *Client) UpdateSite(siteID, name, contentURL string) (*Site, error) {
 
 func (c *Client) DeleteSite(siteID string) error {
 
-	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/sites/%s", c.ApiUrl, siteID), nil)
+	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/sites/%s", c.BaseUrl, siteID), nil)
 	if err != nil {
 		return err
 	}

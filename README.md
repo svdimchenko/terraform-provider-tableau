@@ -9,7 +9,7 @@ Originally aimed at Tableau Online, but can expand.
 terraform {
   required_providers {
     tableau = {
-      source  = "GtheSheep/tableau"
+      source  = "svdimchenko/tableau"
       version = "<version>"
     }
   }

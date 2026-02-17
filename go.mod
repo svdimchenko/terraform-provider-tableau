@@ -1,4 +1,4 @@
-module github.com/gthesheep/terraform-provider-tableau
+module github.com/svdimchenko/terraform-provider-tableau
 
 go 1.23.1
 

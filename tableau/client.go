@@ -11,6 +11,7 @@ import (
 
 type Client struct {
 	ApiUrl     string
+	BaseUrl    string
 	HTTPClient *http.Client
 	AuthToken  string
 }
@@ -86,6 +87,7 @@ func NewClient(server, username, password, personalAccessTokenName, personalAcce
 			return nil, err
 		}
 
+		c.BaseUrl = baseUrl
 		c.ApiUrl = fmt.Sprintf("%s/sites/%s", baseUrl, *ar.SignInResponseData.SiteDetails.ID)
 		c.AuthToken = ar.SignInResponseData.Token
 	}
