@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 
-	"github.com/gthesheep/terraform-provider-tableau/tableau"
+	"github.com/svdimchenko/terraform-provider-tableau/tableau"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 )
 
@@ -13,7 +13,7 @@ import (
 
 func main() {
 	err := providerserver.Serve(context.Background(), tableau.New, providerserver.ServeOpts{
-		Address: "registry.terraform.io/gthesheep/tableau",
+		Address: "registry.terraform.io/svdimchenko/tableau",
 	})
 	if err != nil {
 		log.Fatal(err)
