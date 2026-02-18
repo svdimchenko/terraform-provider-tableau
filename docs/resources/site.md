@@ -3,12 +3,12 @@
 page_title: "tableau_site Resource - terraform-provider-tableau"
 subcategory: ""
 description: |-
-  
+  Manages a Tableau site. The provider user is automatically added to the created site with SiteAdministratorCreator role.
 ---
 
 # tableau_site (Resource)
 
-
+Manages a Tableau site. The provider user is automatically added to the created site with SiteAdministratorCreator role.
 
 ## Example Usage
 
@@ -40,5 +40,9 @@ resource "tableau_site" "test" {
 Import is supported using the following syntax:
 
 ```shell
+# Import by site ID
 terraform import tableau_site.example "site_id"
+
+# Import by site name
+terraform import tableau_site.example "My Site Name"
 ```
