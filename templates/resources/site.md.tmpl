@@ -1,0 +1,24 @@
+---
+page_title: "{{.Type}} {{.Name}} - {{.ProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Type}} ({{.Name}})
+
+{{ .Description | trimspace }}
+
+Manages a Tableau site. The provider user is automatically added to the created site with SiteAdministratorCreator role.
+
+## Example Usage
+
+{{ tffile "examples/resources/tableau_site/resource.tf" }}
+
+{{ .SchemaMarkdown | trimspace }}
+
+## Import
+
+Import is supported using the following syntax:
+
+{{codefile "shell" "examples/resources/tableau_site/import.sh"}}
