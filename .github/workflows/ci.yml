@@ -1,6 +1,6 @@
 on:
   pull_request:
-name: Unit tests
+name: CI
 
 jobs:
   prek:
