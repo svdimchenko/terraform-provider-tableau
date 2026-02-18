@@ -115,7 +115,7 @@ func NewClient(server, username, password, personalAccessTokenName, personalAcce
 	return &c, nil
 }
 
-// NewSiteAuthenticatedClient creates a new client authenticated to a specific site
+// NewSiteAuthenticatedClient creates a new client authenticated to a specific site.
 func (c *Client) NewSiteAuthenticatedClient(siteID string) (*Client, error) {
 	newClient := Client{
 		HTTPClient: &http.Client{Timeout: 10 * time.Second},
@@ -209,7 +209,7 @@ func (c *Client) doRequest(req *http.Request) ([]byte, error) {
 	return body, err
 }
 
-// NewSiteClient creates a new client authenticated to a specific site
+// NewSiteClient creates a new client authenticated to a specific site.
 func (c *Client) NewSiteClient(siteID string) (*Client, error) {
 	siteClient := &Client{
 		HTTPClient: c.HTTPClient,
@@ -222,7 +222,7 @@ func (c *Client) NewSiteClient(siteID string) (*Client, error) {
 	return siteClient, nil
 }
 
-// GetCurrentUser returns the current authenticated user
+// GetCurrentUser returns the current authenticated user.
 func (c *Client) GetCurrentUser() (*User, error) {
 	users, err := c.GetUsers()
 	if err != nil {

@@ -3,7 +3,7 @@
 page_title: "tableau_virtual_connection_permission Resource - terraform-provider-tableau"
 subcategory: ""
 description: |-
-  
+
 ---
 
 # tableau_virtual_connection_permission (Resource)

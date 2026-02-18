@@ -3,7 +3,7 @@
 page_title: "tableau_user Resource - terraform-provider-tableau"
 subcategory: ""
 description: |-
-  
+
 ---
 
 # tableau_user (Resource)

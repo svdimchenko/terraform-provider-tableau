@@ -23,9 +23,9 @@ func TestAccSiteUserResource(t *testing.T) {
 			},
 			// ImportState testing
 			{
-				ResourceName:      "tableau_site_user.test",
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            "tableau_site_user.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
 				ImportStateVerifyIgnore: []string{"last_updated"},
 			},
 			// Update and Read testing

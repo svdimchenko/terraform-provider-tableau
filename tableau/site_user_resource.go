@@ -375,26 +375,65 @@ func (r *siteUserResource) Delete(ctx context.Context, req resource.DeleteReques
 	}
 }
 
-func (r *siteUserResource) Configure(_ context.Context, req resource.ConfigureRequest, _ *resource.ConfigureResponse) {
+func (r *siteUserResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
 	}
 
-	r.client = req.ProviderData.(*Client)
-}
-
-func (r *siteUserResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	// Import format: "username:siteID"
-	parts := strings.Split(req.ID, ":")
-	if len(parts) != 2 {
+	client, ok := req.ProviderData.(*Client)
+	if !ok {
 		resp.Diagnostics.AddError(
-			"Invalid import ID",
-			"Import ID must be in format 'username:siteID'",
+			"Unexpected Resource Configure Type",
+			"Expected *Client, got: %T. Please report this issue to the provider developers.",
 		)
 		return
 	}
 
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), parts[0])...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("site"), parts[1])...)
+	r.client = client
+}
+
+func (r *siteUserResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	// Import format: "username:siteID" or "username:siteName"
+	parts := strings.Split(req.ID, ":")
+	if len(parts) != 2 {
+		resp.Diagnostics.AddError(
+			"Invalid import ID",
+			"Import ID must be in format 'username:siteID' or 'username:siteName'",
+		)
+		return
+	}
+
+	userName := parts[0]
+	siteIdentifier := parts[1]
+
+	// Try to find site by name or ID
+	sites, err := r.client.GetSites()
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error getting sites",
+			"Could not get sites: "+err.Error(),
+		)
+		return
+	}
+
+	var targetSite *Site
+	for _, site := range sites {
+		if site.Name == siteIdentifier || site.ID == siteIdentifier {
+			targetSite = &site
+			break
+		}
+	}
+
+	if targetSite == nil {
+		resp.Diagnostics.AddError(
+			"Site not found",
+			"Site with name or ID '"+siteIdentifier+"' not found",
+		)
+		return
+	}
+
+	importID := GetCombinedID(userName, targetSite.ID)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), importID)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), userName)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("site"), targetSite.ID)...)
 }

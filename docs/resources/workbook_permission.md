@@ -3,7 +3,7 @@
 page_title: "tableau_workbook_permission Resource - terraform-provider-tableau"
 subcategory: ""
 description: |-
-  
+
 ---
 
 # tableau_workbook_permission (Resource)

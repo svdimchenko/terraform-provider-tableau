@@ -126,7 +126,7 @@ func (c *Client) GetSite(siteID string) (*Site, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("Did not find site ID %s", siteID)
+	return nil, fmt.Errorf("did not find site ID %s", siteID)
 }
 
 func (c *Client) CreateSite(name, contentURL string) (*Site, error) {
