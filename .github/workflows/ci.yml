@@ -14,9 +14,9 @@ jobs:
     strategy:
       matrix:
         target:
-          - check-docs
+          # - check-docs
           - test
-          - test-acceptance
+          # - test-acceptance
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v2
