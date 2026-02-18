@@ -147,5 +147,5 @@ func (c *Client) GetDatasource(datasourceID, name string) (*Datasource, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("Did not find datasource ID %s", datasourceID)
+	return nil, fmt.Errorf("did not find datasource ID %s", datasourceID)
 }

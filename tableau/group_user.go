@@ -71,7 +71,7 @@ func (c *Client) GetGroupUser(groupID, userID string) (*User, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("Did not find user ID %s in group ID %s", userID, groupID)
+	return nil, fmt.Errorf("did not find user ID %s in group ID %s", userID, groupID)
 }
 
 func (c *Client) CreateGroupUser(groupID, userID string) (*User, error) {

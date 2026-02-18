@@ -131,7 +131,7 @@ func (c *Client) GetProject(projectID string) (*Project, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("Did not find project ID %s", projectID)
+	return nil, fmt.Errorf("did not find project ID %s", projectID)
 }
 
 func (c *Client) CreateProject(name, parentProjectId, description, contentPermissions, ownerId string) (*Project, error) {

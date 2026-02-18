@@ -135,7 +135,7 @@ func (c *Client) GetGroup(groupID string) (*Group, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("Did not find group ID %s", groupID)
+	return nil, fmt.Errorf("did not find group ID %s", groupID)
 }
 
 func (c *Client) CreateGroup(name, minimumSiteRole string) (*Group, error) {

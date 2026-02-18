@@ -4,8 +4,8 @@ import (
 	"context"
 	"log"
 
-	"github.com/svdimchenko/terraform-provider-tableau/tableau"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
+	"github.com/svdimchenko/terraform-provider-tableau/tableau"
 )
 
 // Provider documentation generation.

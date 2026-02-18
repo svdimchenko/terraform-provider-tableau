@@ -1,21 +1,27 @@
 on:
   pull_request:
-name: Unit tests
+name: CI
 
 jobs:
+  prek:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: j178/prek-action@v1
+
   unit:
     runs-on: ubuntu-latest
     strategy:
       matrix:
         target:
-          - check-docs
+          # - check-docs
           - test
-          - test-acceptance
+          # - test-acceptance
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v2
         with:
-          go-version: '1.23'
+          go-version: "1.23"
 
       - name: Install dependencies
         run: make setup

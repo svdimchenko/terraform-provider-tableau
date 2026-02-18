@@ -1,3 +1,5 @@
+.PHONY: default setup build install test test-acceptance test-acceptance-server docs deps fmt release
+
 NAME=tableau
 VERSION=$(shell cat VERSION)
 BINARY=terraform-provider-$(NAME)_v$(VERSION)
@@ -15,10 +17,6 @@ install: build
 	mkdir -p $(HOME)/.terraform.d/plugins
 	mv ./$(BINARY) $(HOME)/.terraform.d/plugins/$(BINARY)
 
-doc:
-	go get github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
-	go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
-
 test: deps
 	go test -mod=readonly ./...
 
@@ -28,8 +26,8 @@ test-acceptance: deps
 test-acceptance-server: deps
 	TF_ACC=1 TF_ACC_SERVER=1 go test -mod=readonly -count=1 -v ./tableau
 
-check-docs: docs
-	git diff --exit-code -- docs
+docs:
+	go generate ./...
 
 deps:
 	go mod tidy

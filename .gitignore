@@ -3,3 +3,4 @@ vendor/
 terraform-provider*
 .env
 dist/
+bin/

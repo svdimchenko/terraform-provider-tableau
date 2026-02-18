@@ -30,6 +30,51 @@ type SiteListResponse struct {
 	Pagination    PaginationDetails `json:"pagination"`
 }
 
+func (c *Client) GetSites() ([]Site, error) {
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/sites", c.BaseUrl), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := c.doRequest(req)
+	if err != nil {
+		return nil, err
+	}
+
+	siteListResponse := SiteListResponse{}
+	err = json.Unmarshal(body, &siteListResponse)
+	if err != nil {
+		return nil, err
+	}
+
+	pageNumber, totalPageCount, totalAvailable, err := GetPaginationNumbers(siteListResponse.Pagination)
+	if err != nil {
+		return nil, err
+	}
+
+	allSites := make([]Site, 0, totalAvailable)
+	allSites = append(allSites, siteListResponse.SitesResponse.Sites...)
+
+	for page := pageNumber + 1; page <= totalPageCount; page++ {
+		req, err = http.NewRequest("GET", fmt.Sprintf("%s/sites?pageNumber=%d", c.BaseUrl, page), nil)
+		if err != nil {
+			return nil, err
+		}
+		body, err = c.doRequest(req)
+		if err != nil {
+			return nil, err
+		}
+		siteListResponse = SiteListResponse{}
+		err = json.Unmarshal(body, &siteListResponse)
+		if err != nil {
+			return nil, err
+		}
+		allSites = append(allSites, siteListResponse.SitesResponse.Sites...)
+	}
+
+	return allSites, nil
+}
+
 func (c *Client) GetSite(siteID string) (*Site, error) {
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/sites", c.BaseUrl), nil)
 	if err != nil {
@@ -81,7 +126,7 @@ func (c *Client) GetSite(siteID string) (*Site, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("Did not find site ID %s", siteID)
+	return nil, fmt.Errorf("did not find site ID %s", siteID)
 }
 
 func (c *Client) CreateSite(name, contentURL string) (*Site, error) {

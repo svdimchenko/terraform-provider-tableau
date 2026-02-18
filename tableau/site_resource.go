@@ -83,6 +83,34 @@ func (r *siteResource) Create(ctx context.Context, req resource.CreateRequest, r
 		return
 	}
 
+	// Add provider user to the created site
+	siteClient, err := r.client.NewSiteAuthenticatedClient(createdSite.ID)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error creating site client",
+			"Could not create site client: "+err.Error(),
+		)
+		return
+	}
+
+	currentUser, err := r.client.GetCurrentUser()
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error getting current user",
+			"Could not get current user: "+err.Error(),
+		)
+		return
+	}
+
+	_, err = siteClient.CreateUser(currentUser.Email, currentUser.Name, currentUser.FullName, "SiteAdministratorCreator", currentUser.AuthSetting)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error adding user to site",
+			"Could not add provider user to site: "+err.Error(),
+		)
+		return
+	}
+
 	plan.ID = types.StringValue(createdSite.ID)
 	plan.LastUpdated = types.StringValue(time.Now().Format(time.RFC850))
 
@@ -178,14 +206,51 @@ func (r *siteResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 	}
 }
 
-func (r *siteResource) Configure(_ context.Context, req resource.ConfigureRequest, _ *resource.ConfigureResponse) {
+func (r *siteResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
 	}
 
-	r.client = req.ProviderData.(*Client)
+	client, ok := req.ProviderData.(*Client)
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Resource Configure Type",
+			"Expected *Client, got: %T. Please report this issue to the provider developers.",
+		)
+		return
+	}
+
+	r.client = client
 }
 
 func (r *siteResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+	// Try to find site by name first, then by ID
+	sites, err := r.client.GetSites()
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error getting sites",
+			"Could not get sites: "+err.Error(),
+		)
+		return
+	}
+
+	var targetSite *Site
+	for _, site := range sites {
+		if site.Name == req.ID || site.ID == req.ID {
+			targetSite = &site
+			break
+		}
+	}
+
+	if targetSite == nil {
+		resp.Diagnostics.AddError(
+			"Site not found",
+			"Site with name or ID '"+req.ID+"' not found",
+		)
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), targetSite.ID)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), targetSite.Name)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("content_url"), targetSite.ContentURL)...)
 }
