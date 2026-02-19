@@ -391,20 +391,23 @@ func (r *siteUserResource) Configure(_ context.Context, req resource.ConfigureRe
 }
 
 func (r *siteUserResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	// Import format: "username:siteID" or "username:siteName" or "username:" for default site
+	// Import format: "username:siteID", "username:siteName", or "username" for default site
 	parts := strings.Split(req.ID, ":")
-	if len(parts) != 2 {
+	if len(parts) > 2 {
 		resp.Diagnostics.AddError(
 			"Invalid import ID",
-			"Import ID must be in format 'username:siteID' or 'username:siteName' or 'username:' for default site",
+			"Import ID must be in format 'username:siteID', 'username:siteName', or 'username' for default site",
 		)
 		return
 	}
 
 	userName := parts[0]
-	siteIdentifier := parts[1]
+	var siteIdentifier string
+	if len(parts) == 2 {
+		siteIdentifier = parts[1]
+	}
 
-	// If site identifier is empty, use default site
+	// If no site identifier or empty, use default site
 	var targetSiteID string
 	if siteIdentifier == "" {
 		targetSiteID = r.client.SiteID
