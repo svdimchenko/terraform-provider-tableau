@@ -55,26 +55,37 @@ func (r *siteGroupResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 			"name": schema.StringAttribute{
 				Required:    true,
 				Description: "Name of the Active Directory group",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"site": schema.StringAttribute{
 				Optional:    true,
-				Computed:    true,
 				Description: "Site ID where the group should be imported (omit for default site)",
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"domain_name": schema.StringAttribute{
 				Optional:    true,
 				Description: "Active Directory domain name (auto-extracted from name if not provided)",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"minimum_site_role": schema.StringAttribute{
 				Optional:    true,
 				Description: "Minimum site role for the group",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"grant_license_mode": schema.StringAttribute{
 				Optional:    true,
 				Description: "Grant license mode (onLogin or onSync)",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"async_mode": schema.BoolAttribute{
 				Optional:    true,
@@ -129,7 +140,6 @@ func (r *siteGroupResource) Create(ctx context.Context, req resource.CreateReque
 	}
 
 	plan.ID = types.StringValue(GetCombinedID(createdGroup.ID, siteID))
-	plan.Site = types.StringValue(siteID)
 	plan.LastUpdated = types.StringValue(time.Now().Format(time.RFC850))
 
 	diags = resp.State.Set(ctx, plan)
@@ -171,7 +181,6 @@ func (r *siteGroupResource) Read(ctx context.Context, req resource.ReadRequest, 
 	}
 
 	state.Name = types.StringValue(group.Name)
-	state.Site = types.StringValue(siteID)
 
 	if group.Import != nil {
 		if group.Import.DomainName != nil {

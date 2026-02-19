@@ -278,6 +278,7 @@ func (p *tableauProvider) Resources(_ context.Context) []func() resource.Resourc
 		NewSiteResource,
 		NewSiteUserResource,
 		NewSiteGroupResource,
+		NewSiteProjectResource,
 		NewDatasourcePermissionResource,
 		NewProjectPermissionResource,
 		NewViewPermissionResource,
