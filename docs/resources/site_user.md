@@ -2,12 +2,12 @@
 page_title: "Resource tableau_site_user - tableau"
 subcategory: ""
 description: |-
-
+  Tableau Site User
 ---
 
 # Resource (tableau_site_user)
 
-
+Tableau Site User
 
 Manages a user within a specific Tableau site. This resource allows you to add existing users to sites with specific roles.
 

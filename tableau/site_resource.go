@@ -39,6 +39,7 @@ func (r *siteResource) Metadata(_ context.Context, req resource.MetadataRequest,
 
 func (r *siteResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Description: "Tableau Site",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed: true,

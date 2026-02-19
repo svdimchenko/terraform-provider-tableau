@@ -3,12 +3,12 @@
 page_title: "tableau_project Resource - tableau"
 subcategory: ""
 description: |-
-
+  Tableau Project
 ---
 
 # tableau_project (Resource)
 
-
+Tableau Project
 
 ## Example Usage
 

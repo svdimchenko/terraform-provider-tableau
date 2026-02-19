@@ -43,6 +43,7 @@ func (r *siteUserResource) Metadata(_ context.Context, req resource.MetadataRequ
 
 func (r *siteUserResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Description: "Tableau Site User",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed: true,

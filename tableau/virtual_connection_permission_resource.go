@@ -44,6 +44,7 @@ func (r *virtualConnectionPermissionResource) Metadata(_ context.Context, req re
 
 func (r *virtualConnectionPermissionResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Description: "Tableau Virtual Connection Permission",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed: true,
