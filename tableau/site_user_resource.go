@@ -53,11 +53,14 @@ func (r *siteUserResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 			},
 			"name": schema.StringAttribute{
 				Required:    true,
-				Description: "Username of the user",
+				Description: "Username of the user (will be imported from Active Directory)",
 			},
 			"site": schema.StringAttribute{
-				Required:    true,
-				Description: "Site ID where the user should be added",
+				Optional:    true,
+				Description: "Site ID where the user should be added (omit for default site)",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"role": schema.StringAttribute{
 				Required:    true,
@@ -101,47 +104,30 @@ func (r *siteUserResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	// Create site-specific client
-	siteClient, err := r.client.NewSiteAuthenticatedClient(plan.Site.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error creating site client",
-			"Could not create site client: "+err.Error(),
-		)
-		return
-	}
+	var siteClient *Client
+	var siteID string
 
-	// Get user details from main client
-	users, err := r.client.GetUsers()
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error getting users",
-			"Could not get users: "+err.Error(),
-		)
-		return
-	}
-
-	var targetUser *User
-	for _, user := range users {
-		if user.Name == plan.Name.ValueString() {
-			targetUser = &user
-			break
+	if plan.Site.IsNull() || plan.Site.ValueString() == "" {
+		siteClient = r.client
+		siteID = r.client.SiteID
+	} else {
+		siteID = plan.Site.ValueString()
+		var err error
+		siteClient, err = r.client.NewSiteAuthenticatedClient(siteID)
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error creating site client",
+				"Could not create site client: "+err.Error(),
+			)
+			return
 		}
-	}
-
-	if targetUser == nil {
-		resp.Diagnostics.AddError(
-			"User not found",
-			"User "+plan.Name.ValueString()+" not found",
-		)
-		return
 	}
 
 	// Handle ServerAdministrator role special case
 	role := plan.Role.ValueString()
 	if role == "ServerAdministrator" {
 		// First create with SiteAdministratorCreator
-		createdUser, err := siteClient.CreateUser(targetUser.Email, targetUser.Name, targetUser.FullName, "SiteAdministratorCreator", targetUser.AuthSetting)
+		createdUser, err := siteClient.CreateUser("", plan.Name.ValueString(), "", "SiteAdministratorCreator", "SAML")
 		if err != nil {
 			resp.Diagnostics.AddError(
 				"Error creating site user",
@@ -151,7 +137,7 @@ func (r *siteUserResource) Create(ctx context.Context, req resource.CreateReques
 		}
 
 		// Then update to ServerAdministrator
-		_, err = siteClient.UpdateUser(createdUser.ID, targetUser.Email, targetUser.Name, targetUser.FullName, "ServerAdministrator", targetUser.AuthSetting)
+		_, err = siteClient.UpdateUser(createdUser.ID, "", plan.Name.ValueString(), "", "ServerAdministrator", "SAML")
 		if err != nil {
 			resp.Diagnostics.AddError(
 				"Error updating site user to ServerAdministrator",
@@ -159,11 +145,9 @@ func (r *siteUserResource) Create(ctx context.Context, req resource.CreateReques
 			)
 			return
 		}
-
-		plan.ID = types.StringValue(GetCombinedID(plan.Name.ValueString(), plan.Site.ValueString()))
 	} else {
 		// Create user with specified role
-		_, err := siteClient.CreateUser(targetUser.Email, targetUser.Name, targetUser.FullName, role, targetUser.AuthSetting)
+		_, err := siteClient.CreateUser("", plan.Name.ValueString(), "", role, "SAML")
 		if err != nil {
 			resp.Diagnostics.AddError(
 				"Error creating site user",
@@ -171,10 +155,9 @@ func (r *siteUserResource) Create(ctx context.Context, req resource.CreateReques
 			)
 			return
 		}
-
-		plan.ID = types.StringValue(GetCombinedID(plan.Name.ValueString(), plan.Site.ValueString()))
 	}
 
+	plan.ID = types.StringValue(GetCombinedID(plan.Name.ValueString(), siteID))
 	plan.LastUpdated = types.StringValue(time.Now().Format(time.RFC850))
 
 	diags = resp.State.Set(ctx, plan)
@@ -194,14 +177,19 @@ func (r *siteUserResource) Read(ctx context.Context, req resource.ReadRequest, r
 
 	userName, siteID := GetIDsFromCombinedID(state.ID.ValueString())
 
-	// Create site-specific client
-	siteClient, err := r.client.NewSiteAuthenticatedClient(siteID)
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error creating site client",
-			"Could not create site client: "+err.Error(),
-		)
-		return
+	var siteClient *Client
+	if siteID == r.client.SiteID {
+		siteClient = r.client
+	} else {
+		var err error
+		siteClient, err = r.client.NewSiteAuthenticatedClient(siteID)
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error creating site client",
+				"Could not create site client: "+err.Error(),
+			)
+			return
+		}
 	}
 
 	// Get users from site
@@ -225,7 +213,6 @@ func (r *siteUserResource) Read(ctx context.Context, req resource.ReadRequest, r
 	}
 
 	state.Name = types.StringValue(targetUser.Name)
-	state.Site = types.StringValue(siteID)
 	state.Role = types.StringValue(targetUser.SiteRole)
 
 	diags = resp.State.Set(ctx, &state)
@@ -245,14 +232,19 @@ func (r *siteUserResource) Update(ctx context.Context, req resource.UpdateReques
 
 	userName, siteID := GetIDsFromCombinedID(plan.ID.ValueString())
 
-	// Create site-specific client
-	siteClient, err := r.client.NewSiteAuthenticatedClient(siteID)
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error creating site client",
-			"Could not create site client: "+err.Error(),
-		)
-		return
+	var siteClient *Client
+	if siteID == r.client.SiteID {
+		siteClient = r.client
+	} else {
+		var err error
+		siteClient, err = r.client.NewSiteAuthenticatedClient(siteID)
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error creating site client",
+				"Could not create site client: "+err.Error(),
+			)
+			return
+		}
 	}
 
 	// Get user from site
@@ -285,7 +277,7 @@ func (r *siteUserResource) Update(ctx context.Context, req resource.UpdateReques
 	role := plan.Role.ValueString()
 	if role == "ServerAdministrator" && targetUser.SiteRole != "ServerAdministrator" {
 		// First update to SiteAdministratorCreator, then to ServerAdministrator
-		_, err = siteClient.UpdateUser(targetUser.ID, targetUser.Email, targetUser.Name, targetUser.FullName, "SiteAdministratorCreator", targetUser.AuthSetting)
+		_, err = siteClient.UpdateUser(targetUser.ID, "", targetUser.Name, "", "SiteAdministratorCreator", "SAML")
 		if err != nil {
 			resp.Diagnostics.AddError(
 				"Error updating site user to SiteAdministratorCreator",
@@ -294,7 +286,7 @@ func (r *siteUserResource) Update(ctx context.Context, req resource.UpdateReques
 			return
 		}
 
-		_, err = siteClient.UpdateUser(targetUser.ID, targetUser.Email, targetUser.Name, targetUser.FullName, "ServerAdministrator", targetUser.AuthSetting)
+		_, err = siteClient.UpdateUser(targetUser.ID, "", targetUser.Name, "", "ServerAdministrator", "SAML")
 		if err != nil {
 			resp.Diagnostics.AddError(
 				"Error updating site user to ServerAdministrator",
@@ -304,7 +296,7 @@ func (r *siteUserResource) Update(ctx context.Context, req resource.UpdateReques
 		}
 	} else {
 		// Update user with specified role
-		_, err = siteClient.UpdateUser(targetUser.ID, targetUser.Email, targetUser.Name, targetUser.FullName, role, targetUser.AuthSetting)
+		_, err = siteClient.UpdateUser(targetUser.ID, "", targetUser.Name, "", role, "SAML")
 		if err != nil {
 			resp.Diagnostics.AddError(
 				"Error updating site user",
@@ -333,14 +325,19 @@ func (r *siteUserResource) Delete(ctx context.Context, req resource.DeleteReques
 
 	userName, siteID := GetIDsFromCombinedID(state.ID.ValueString())
 
-	// Create site-specific client
-	siteClient, err := r.client.NewSiteAuthenticatedClient(siteID)
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error creating site client",
-			"Could not create site client: "+err.Error(),
-		)
-		return
+	var siteClient *Client
+	if siteID == r.client.SiteID {
+		siteClient = r.client
+	} else {
+		var err error
+		siteClient, err = r.client.NewSiteAuthenticatedClient(siteID)
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error creating site client",
+				"Could not create site client: "+err.Error(),
+			)
+			return
+		}
 	}
 
 	// Get user from site
@@ -394,12 +391,12 @@ func (r *siteUserResource) Configure(_ context.Context, req resource.ConfigureRe
 }
 
 func (r *siteUserResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	// Import format: "username:siteID" or "username:siteName"
+	// Import format: "username:siteID" or "username:siteName" or "username:" for default site
 	parts := strings.Split(req.ID, ":")
 	if len(parts) != 2 {
 		resp.Diagnostics.AddError(
 			"Invalid import ID",
-			"Import ID must be in format 'username:siteID' or 'username:siteName'",
+			"Import ID must be in format 'username:siteID' or 'username:siteName' or 'username:' for default site",
 		)
 		return
 	}
@@ -407,34 +404,43 @@ func (r *siteUserResource) ImportState(ctx context.Context, req resource.ImportS
 	userName := parts[0]
 	siteIdentifier := parts[1]
 
-	// Try to find site by name or ID
-	sites, err := r.client.GetSites()
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error getting sites",
-			"Could not get sites: "+err.Error(),
-		)
-		return
-	}
-
-	var targetSite *Site
-	for _, site := range sites {
-		if site.Name == siteIdentifier || site.ID == siteIdentifier {
-			targetSite = &site
-			break
+	// If site identifier is empty, use default site
+	var targetSiteID string
+	if siteIdentifier == "" {
+		targetSiteID = r.client.SiteID
+	} else {
+		// Try to find site by name or ID
+		sites, err := r.client.GetSites()
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error getting sites",
+				"Could not get sites: "+err.Error(),
+			)
+			return
 		}
+
+		var targetSite *Site
+		for _, site := range sites {
+			if site.Name == siteIdentifier || site.ID == siteIdentifier {
+				targetSite = &site
+				break
+			}
+		}
+
+		if targetSite == nil {
+			resp.Diagnostics.AddError(
+				"Site not found",
+				"Site with name or ID '"+siteIdentifier+"' not found",
+			)
+			return
+		}
+		targetSiteID = targetSite.ID
 	}
 
-	if targetSite == nil {
-		resp.Diagnostics.AddError(
-			"Site not found",
-			"Site with name or ID '"+siteIdentifier+"' not found",
-		)
-		return
-	}
-
-	importID := GetCombinedID(userName, targetSite.ID)
+	importID := GetCombinedID(userName, targetSiteID)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), importID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), userName)...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("site"), targetSite.ID)...)
+	if siteIdentifier != "" {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("site"), targetSiteID)...)
+	}
 }
