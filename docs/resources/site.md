@@ -2,12 +2,12 @@
 page_title: "Resource tableau_site - tableau"
 subcategory: ""
 description: |-
-
+  Tableau Site
 ---
 
 # Resource (tableau_site)
 
-
+Tableau Site
 
 Manages a Tableau site. The provider user is automatically added to the created site with SiteAdministratorCreator role.
 

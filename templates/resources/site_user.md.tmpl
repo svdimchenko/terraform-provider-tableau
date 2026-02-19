@@ -9,7 +9,7 @@ description: |-
 
 {{ .Description | trimspace }}
 
-Manages a user within a specific Tableau site. This resource allows you to add existing users to sites with specific roles.
+Manages a user within a Tableau site by importing them from Active Directory. This resource allows you to add users to sites with specific roles using SAML authentication.
 
 ## Example Usage
 
@@ -25,7 +25,8 @@ Import is supported using the following syntax:
 
 ## Notes
 
-- The user must already exist in the Tableau system before being added to a site
+- Users are imported from Active Directory using SAML authentication
+- The `site` attribute is optional - omit it to use the provider's default site
+- Changing the `site` attribute will destroy and recreate the resource (user will be removed from old site and added to new site)
 - The provider user (configured in the provider block) cannot be managed with this resource
 - When setting role to `ServerAdministrator`, the resource will first create the user with `SiteAdministratorCreator` role, then update to `ServerAdministrator` role due to Tableau API limitations
-- This resource requires a separate client authenticated to the specified site

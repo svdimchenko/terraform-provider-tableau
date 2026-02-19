@@ -44,6 +44,7 @@ func (r *datasourcePermissionResource) Metadata(_ context.Context, req resource.
 
 func (r *datasourcePermissionResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Description: "Datasource Permissions",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed: true,

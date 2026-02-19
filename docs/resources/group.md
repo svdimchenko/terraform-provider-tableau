@@ -3,12 +3,12 @@
 page_title: "tableau_group Resource - tableau"
 subcategory: ""
 description: |-
-
+  Tableau Group User
 ---
 
 # tableau_group (Resource)
 
-
+Tableau Group User
 
 ## Example Usage
 

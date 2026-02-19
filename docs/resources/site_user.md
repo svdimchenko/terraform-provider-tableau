@@ -2,22 +2,36 @@
 page_title: "Resource tableau_site_user - tableau"
 subcategory: ""
 description: |-
-
+  Tableau Site User
 ---
 
 # Resource (tableau_site_user)
 
+Tableau Site User
 
-
-Manages a user within a specific Tableau site. This resource allows you to add existing users to sites with specific roles.
+Manages a user within a Tableau site by importing them from Active Directory. This resource allows you to add users to sites with specific roles using SAML authentication.
 
 ## Example Usage
 
 ```terraform
+# Import user from Active Directory to a specific site
 resource "tableau_site_user" "example" {
   name = "john.doe"
   site = tableau_site.example.id
   role = "Creator"
+}
+
+# Import user to the default site (omit site attribute)
+resource "tableau_site_user" "default_site" {
+  name = "jane.smith"
+  role = "Explorer"
+}
+
+# Import user with ServerAdministrator role
+resource "tableau_site_user" "admin" {
+  name = "admin.user"
+  site = tableau_site.example.id
+  role = "ServerAdministrator"
 }
 ```
 
@@ -26,9 +40,12 @@ resource "tableau_site_user" "example" {
 
 ### Required
 
-- `name` (String) Username of the user
+- `name` (String) Username of the user (will be imported from Active Directory)
 - `role` (String) Site role for the user
-- `site` (String) Site ID where the user should be added
+
+### Optional
+
+- `site` (String) Site ID where the user should be added (omit for default site)
 
 ### Read-Only
 
@@ -43,11 +60,15 @@ Import is supported using the following syntax:
 # Site users can be imported using the format "username:siteID" or "username:siteName"
 terraform import tableau_site_user.example "john.doe:site-id-123"
 terraform import tableau_site_user.example "john.doe:My Site Name"
+
+# Import user from the default site (omit site identifier)
+terraform import tableau_site_user.default_site "jane.smith"
 ```
 
 ## Notes
 
-- The user must already exist in the Tableau system before being added to a site
+- Users are imported from Active Directory using SAML authentication
+- The `site` attribute is optional - omit it to use the provider's default site
+- Changing the `site` attribute will destroy and recreate the resource (user will be removed from old site and added to new site)
 - The provider user (configured in the provider block) cannot be managed with this resource
 - When setting role to `ServerAdministrator`, the resource will first create the user with `SiteAdministratorCreator` role, then update to `ServerAdministrator` role due to Tableau API limitations
-- This resource requires a separate client authenticated to the specified site

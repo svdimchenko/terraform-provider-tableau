@@ -3,12 +3,12 @@
 page_title: "tableau_datasource_permission Resource - tableau"
 subcategory: ""
 description: |-
-
+  Datasource Permissions
 ---
 
 # tableau_datasource_permission (Resource)
 
-
+Datasource Permissions
 
 ## Example Usage
 

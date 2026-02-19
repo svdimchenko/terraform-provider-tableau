@@ -1,0 +1,31 @@
+---
+page_title: "{{.Type}} {{.Name}} - {{.ProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Type}} ({{.Name}})
+
+{{ .Description | trimspace }}
+
+Manages a project within a Tableau site. This resource allows you to create and manage projects with configurable permissions and ownership.
+
+## Example Usage
+
+{{ tffile "examples/resources/tableau_site_project/resource.tf" }}
+
+{{ .SchemaMarkdown | trimspace }}
+
+## Import
+
+Import is supported using the following syntax:
+
+{{codefile "shell" "examples/resources/tableau_site_project/import.sh"}}
+
+## Notes
+
+- The `site` attribute is optional - omit it to use the provider's default site
+- Changing the `site` attribute will destroy and recreate the resource (project will be removed from old site and created on new site)
+- When no `owner_id` is specified, the project owner will be set to the authenticated user
+- Content permissions control how permissions are inherited: `LockedToProject`, `ManagedByOwner`, or `LockedToProjectWithoutNested`

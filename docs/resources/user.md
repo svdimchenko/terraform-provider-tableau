@@ -3,12 +3,12 @@
 page_title: "tableau_user Resource - tableau"
 subcategory: ""
 description: |-
-
+  Tableau Site User
 ---
 
 # tableau_user (Resource)
 
-
+Tableau Site User
 
 ## Example Usage
 

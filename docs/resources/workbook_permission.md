@@ -3,12 +3,12 @@
 page_title: "tableau_workbook_permission Resource - tableau"
 subcategory: ""
 description: |-
-
+  Tableau View Permission
 ---
 
 # tableau_workbook_permission (Resource)
 
-
+Tableau View Permission
 
 ## Example Usage
 

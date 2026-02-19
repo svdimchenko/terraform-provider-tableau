@@ -3,12 +3,12 @@
 page_title: "tableau_virtual_connection_permission Resource - tableau"
 subcategory: ""
 description: |-
-
+  Tableau Virtual Connection Permission
 ---
 
 # tableau_virtual_connection_permission (Resource)
 
-
+Tableau Virtual Connection Permission
 
 ## Example Usage
 

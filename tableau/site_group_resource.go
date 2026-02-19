@@ -55,26 +55,37 @@ func (r *siteGroupResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 			"name": schema.StringAttribute{
 				Required:    true,
 				Description: "Name of the Active Directory group",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"site": schema.StringAttribute{
 				Optional:    true,
-				Computed:    true,
 				Description: "Site ID where the group should be imported (omit for default site)",
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"domain_name": schema.StringAttribute{
 				Optional:    true,
 				Description: "Active Directory domain name (auto-extracted from name if not provided)",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"minimum_site_role": schema.StringAttribute{
 				Optional:    true,
 				Description: "Minimum site role for the group",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"grant_license_mode": schema.StringAttribute{
 				Optional:    true,
 				Description: "Grant license mode (onLogin or onSync)",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"async_mode": schema.BoolAttribute{
 				Optional:    true,
@@ -129,7 +140,6 @@ func (r *siteGroupResource) Create(ctx context.Context, req resource.CreateReque
 	}
 
 	plan.ID = types.StringValue(GetCombinedID(createdGroup.ID, siteID))
-	plan.Site = types.StringValue(siteID)
 	plan.LastUpdated = types.StringValue(time.Now().Format(time.RFC850))
 
 	diags = resp.State.Set(ctx, plan)
@@ -171,7 +181,6 @@ func (r *siteGroupResource) Read(ctx context.Context, req resource.ReadRequest, 
 	}
 
 	state.Name = types.StringValue(group.Name)
-	state.Site = types.StringValue(siteID)
 
 	if group.Import != nil {
 		if group.Import.DomainName != nil {
@@ -262,50 +271,65 @@ func (r *siteGroupResource) Configure(_ context.Context, req resource.ConfigureR
 }
 
 func (r *siteGroupResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	// Import format: "groupName:siteID", "groupName:siteName", or "groupName" for default site
 	parts := strings.Split(req.ID, ":")
-	if len(parts) != 2 {
+	if len(parts) > 2 {
 		resp.Diagnostics.AddError(
 			"Invalid import ID",
-			"Import ID must be in format 'groupName:siteID' or 'groupName:siteName'",
+			"Import ID must be in format 'groupName:siteID', 'groupName:siteName', or 'groupName' for default site",
 		)
 		return
 	}
 
 	groupName := parts[0]
-	siteIdentifier := parts[1]
-
-	sites, err := r.client.GetSites()
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error getting sites",
-			"Could not get sites: "+err.Error(),
-		)
-		return
+	var siteIdentifier string
+	if len(parts) == 2 {
+		siteIdentifier = parts[1]
 	}
 
-	var targetSite *Site
-	for _, site := range sites {
-		if site.Name == siteIdentifier || site.ID == siteIdentifier {
-			targetSite = &site
-			break
+	// If no site identifier or empty, use default site
+	var targetSiteID string
+	var siteClient *Client
+	if siteIdentifier == "" {
+		targetSiteID = r.client.SiteID
+		siteClient = r.client
+	} else {
+		// Try to find site by name or ID
+		sites, err := r.client.GetSites()
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error getting sites",
+				"Could not get sites: "+err.Error(),
+			)
+			return
 		}
-	}
 
-	if targetSite == nil {
-		resp.Diagnostics.AddError(
-			"Site not found",
-			"Site with name or ID '"+siteIdentifier+"' not found",
-		)
-		return
-	}
+		var targetSite *Site
+		for _, site := range sites {
+			if site.Name == siteIdentifier || site.ID == siteIdentifier {
+				targetSite = &site
+				break
+			}
+		}
 
-	siteClient, err := r.client.NewSiteAuthenticatedClient(targetSite.ID)
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error creating site client",
-			"Could not create site client: "+err.Error(),
-		)
-		return
+		if targetSite == nil {
+			resp.Diagnostics.AddError(
+				"Site not found",
+				"Site with name or ID '"+siteIdentifier+"' not found",
+			)
+			return
+		}
+		targetSiteID = targetSite.ID
+
+		var err2 error
+		siteClient, err2 = r.client.NewSiteAuthenticatedClient(targetSiteID)
+		if err2 != nil {
+			resp.Diagnostics.AddError(
+				"Error creating site client",
+				"Could not create site client: "+err2.Error(),
+			)
+			return
+		}
 	}
 
 	groups, err := siteClient.GetGroups()
@@ -333,8 +357,10 @@ func (r *siteGroupResource) ImportState(ctx context.Context, req resource.Import
 		return
 	}
 
-	importID := GetCombinedID(targetGroup.ID, targetSite.ID)
+	importID := GetCombinedID(targetGroup.ID, targetSiteID)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), importID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), groupName)...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("site"), targetSite.ID)...)
+	if siteIdentifier != "" {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("site"), targetSiteID)...)
+	}
 }

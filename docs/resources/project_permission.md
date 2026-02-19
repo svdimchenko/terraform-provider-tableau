@@ -3,12 +3,12 @@
 page_title: "tableau_project_permission Resource - tableau"
 subcategory: ""
 description: |-
-
+  Tableau Project Permission
 ---
 
 # tableau_project_permission (Resource)
 
-
+Tableau Project Permission
 
 ## Example Usage
 

@@ -45,6 +45,7 @@ func (r *projectResource) Metadata(_ context.Context, req resource.MetadataReque
 
 func (r *projectResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Description: "Tableau Project",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed: true,
