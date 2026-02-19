@@ -28,6 +28,10 @@ test-acceptance-server: deps
 
 docs:
 	go generate ./...
+	find docs -name '*.md' -type f -exec sed -i '' 's/[[:space:]]*$$//' {} +
+
+check-docs: docs
+	git diff --exit-code -- docs
 
 deps:
 	go mod tidy

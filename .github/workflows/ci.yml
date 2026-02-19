@@ -14,7 +14,7 @@ jobs:
     strategy:
       matrix:
         target:
-          # - check-docs
+          - check-docs
           - test
           # - test-acceptance
     steps:

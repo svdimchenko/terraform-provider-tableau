@@ -5,12 +5,27 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 )
 
 type GroupImport struct {
-	DomainName       *string `json:"domainName"`
-	MinimumSiteRole  *string `json:"siteRole"`
-	GrantLicenseMode *string `json:"grantLicenseMode"`
+	Source           *string `json:"source,omitempty"`
+	DomainName       *string `json:"domainName,omitempty"`
+	MinimumSiteRole  *string `json:"siteRole,omitempty"`
+	GrantLicenseMode *string `json:"grantLicenseMode,omitempty"`
+}
+
+type Job struct {
+	ID         string `json:"id"`
+	Mode       string `json:"mode"`
+	Type       string `json:"type"`
+	Progress   string `json:"progress"`
+	CreatedAt  string `json:"createdAt"`
+	FinishCode string `json:"finishCode"`
+}
+
+type JobResponse struct {
+	Job Job `json:"job"`
 }
 
 type Group struct {
@@ -219,4 +234,110 @@ func (c *Client) DeleteGroup(groupID string) error {
 	}
 
 	return nil
+}
+
+func (c *Client) ImportGroup(name, domainName, minimumSiteRole, grantLicenseMode string, asyncMode bool) (*Group, error) {
+	source := "ActiveDirectory"
+
+	if domainName == "" {
+		parts := strings.Split(name, "\\")
+		if len(parts) == 2 {
+			domainName = parts[0]
+		}
+	}
+
+	newGroup := Group{
+		Name: name,
+		Import: &GroupImport{
+			Source:     &source,
+			DomainName: &domainName,
+		},
+	}
+
+	if minimumSiteRole != "" {
+		newGroup.Import.MinimumSiteRole = &minimumSiteRole
+	}
+	if grantLicenseMode != "" {
+		newGroup.Import.GrantLicenseMode = &grantLicenseMode
+	}
+
+	groupRequest := GroupRequest{
+		Group: newGroup,
+	}
+
+	newGroupJson, err := json.Marshal(groupRequest)
+	if err != nil {
+		return nil, err
+	}
+
+	asJobParam := "false"
+	if asyncMode {
+		asJobParam = "true"
+	}
+
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s/groups?asJob=%s", c.ApiUrl, asJobParam), strings.NewReader(string(newGroupJson)))
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := c.doRequest(req)
+	if err != nil {
+		return nil, err
+	}
+
+	if asyncMode {
+		jobResponse := JobResponse{}
+		err = json.Unmarshal(body, &jobResponse)
+		if err != nil {
+			return nil, err
+		}
+		err = c.WaitForJob(jobResponse.Job.ID)
+		if err != nil {
+			return nil, err
+		}
+		groups, err := c.GetGroups()
+		if err != nil {
+			return nil, err
+		}
+		for _, group := range groups {
+			if group.Name == name {
+				return &group, nil
+			}
+		}
+		return nil, fmt.Errorf("group %s not found after job completion", name)
+	}
+
+	groupResponse := GroupResponse{}
+	err = json.Unmarshal(body, &groupResponse)
+	if err != nil {
+		return nil, err
+	}
+
+	return &groupResponse.Group, nil
+}
+
+func (c *Client) WaitForJob(jobID string) error {
+	for i := 0; i < 60; i++ {
+		req, err := http.NewRequest("GET", fmt.Sprintf("%s/jobs/%s", c.ApiUrl, jobID), nil)
+		if err != nil {
+			return err
+		}
+		body, err := c.doRequest(req)
+		if err != nil {
+			return err
+		}
+		jobResponse := JobResponse{}
+		err = json.Unmarshal(body, &jobResponse)
+		if err != nil {
+			return err
+		}
+		if jobResponse.Job.Progress == "100" {
+			if jobResponse.Job.FinishCode == "0" {
+				return nil
+			}
+			return fmt.Errorf("job failed with finish code %s", jobResponse.Job.FinishCode)
+		}
+		time.Sleep(2 * time.Second)
+	}
+	return fmt.Errorf("job timeout after 60 attempts")
 }

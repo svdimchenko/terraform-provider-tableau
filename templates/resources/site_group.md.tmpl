@@ -1,0 +1,33 @@
+---
+page_title: "{{.Type}} {{.Name}} - {{.ProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Type}} ({{.Name}})
+
+{{ .Description | trimspace }}
+
+Imports an Active Directory group to a Tableau site. This resource creates a site-specific authenticated session and imports the specified AD group with configurable licensing and role settings.
+
+## Example Usage
+
+{{ tffile "examples/resources/tableau_site_group/resource.tf" }}
+
+{{ .SchemaMarkdown | trimspace }}
+
+## Import
+
+Import is supported using the following syntax:
+
+{{codefile "shell" "examples/resources/tableau_site_group/import.sh"}}
+
+## Notes
+
+- The Active Directory group must exist before import. The Tableau API validates group existence.
+- When `async_mode` is `true`, the resource polls job status every 2 seconds for up to 2 minutes.
+- If `site` is omitted, the resource uses the default site from the provider configuration.
+- Site groups cannot be updated after creation. Changes require resource recreation.
+- The resource creates a site-specific authenticated session for non-default sites.
+- Domain name can be auto-extracted from the group name if it follows the format `domain\groupname`.
