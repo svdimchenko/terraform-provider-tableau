@@ -188,7 +188,7 @@ func (r *siteProjectResource) Read(ctx context.Context, req resource.ReadRequest
 
 	state.Name = types.StringValue(project.Name)
 	if project.ParentProjectID != "" {
-		state.ParentProjectID = types.StringValue(project.ParentProjectID)
+		state.ParentProjectID = types.StringValue(GetCombinedID(project.ParentProjectID, siteID))
 	}
 	state.OwnerID = types.StringValue(project.Owner.ID)
 	state.Description = types.StringValue(project.Description)
@@ -253,7 +253,7 @@ func (r *siteProjectResource) Update(ctx context.Context, req resource.UpdateReq
 
 	plan.Name = types.StringValue(updatedProject.Name)
 	if updatedProject.ParentProjectID != "" {
-		plan.ParentProjectID = types.StringValue(updatedProject.ParentProjectID)
+		plan.ParentProjectID = types.StringValue(GetCombinedID(updatedProject.ParentProjectID, siteID))
 	}
 	plan.OwnerID = types.StringValue(updatedProject.Owner.ID)
 	plan.Description = types.StringValue(updatedProject.Description)
