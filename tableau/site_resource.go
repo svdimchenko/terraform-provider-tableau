@@ -197,7 +197,17 @@ func (r *siteResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 		return
 	}
 
-	err := r.client.DeleteSite(state.ID.ValueString())
+	// Authenticate to the target site before deletion
+	siteClient, err := r.client.NewSiteAuthenticatedClient(state.ID.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error authenticating to site",
+			"Could not authenticate to site for deletion: "+err.Error(),
+		)
+		return
+	}
+
+	err = siteClient.DeleteSite(state.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Deleting Tableau Site",
