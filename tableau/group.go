@@ -270,12 +270,7 @@ func (c *Client) ImportGroup(name, domainName, minimumSiteRole, grantLicenseMode
 		return nil, err
 	}
 
-	asJobParam := "false"
-	if asyncMode {
-		asJobParam = "true"
-	}
-
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/groups?asJob=%s", c.ApiUrl, asJobParam), strings.NewReader(string(newGroupJson)))
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s/groups?asJob=true", c.ApiUrl), strings.NewReader(string(newGroupJson)))
 	if err != nil {
 		return nil, err
 	}
@@ -285,35 +280,25 @@ func (c *Client) ImportGroup(name, domainName, minimumSiteRole, grantLicenseMode
 		return nil, err
 	}
 
-	if asyncMode {
-		jobResponse := JobResponse{}
-		err = json.Unmarshal(body, &jobResponse)
-		if err != nil {
-			return nil, err
-		}
-		err = c.WaitForJob(jobResponse.Job.ID)
-		if err != nil {
-			return nil, err
-		}
-		groups, err := c.GetGroups()
-		if err != nil {
-			return nil, err
-		}
-		for _, group := range groups {
-			if group.Name == name {
-				return &group, nil
-			}
-		}
-		return nil, fmt.Errorf("group %s not found after job completion", name)
-	}
-
-	groupResponse := GroupResponse{}
-	err = json.Unmarshal(body, &groupResponse)
+	jobResponse := JobResponse{}
+	err = json.Unmarshal(body, &jobResponse)
 	if err != nil {
 		return nil, err
 	}
-
-	return &groupResponse.Group, nil
+	err = c.WaitForJob(jobResponse.Job.ID)
+	if err != nil {
+		return nil, err
+	}
+	groups, err := c.GetGroups()
+	if err != nil {
+		return nil, err
+	}
+	for _, group := range groups {
+		if group.Name == name {
+			return &group, nil
+		}
+	}
+	return nil, fmt.Errorf("group %s not found after job completion", name)
 }
 
 func (c *Client) WaitForJob(jobID string) error {

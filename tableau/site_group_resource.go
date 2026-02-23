@@ -2,23 +2,19 @@ package tableau
 
 import (
 	"context"
-	"strings"
-	"time"
-
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"strings"
 )
 
 var (
 	_ resource.Resource                = &siteGroupResource{}
 	_ resource.ResourceWithConfigure   = &siteGroupResource{}
 	_ resource.ResourceWithImportState = &siteGroupResource{}
-	_ resource.ResourceWithModifyPlan  = &siteGroupResource{}
 )
 
 func NewSiteGroupResource() resource.Resource {
@@ -36,8 +32,6 @@ type siteGroupResourceModel struct {
 	DomainName       types.String `tfsdk:"domain_name"`
 	MinimumSiteRole  types.String `tfsdk:"minimum_site_role"`
 	GrantLicenseMode types.String `tfsdk:"grant_license_mode"`
-	AsyncMode        types.Bool   `tfsdk:"async_mode"`
-	LastUpdated      types.String `tfsdk:"last_updated"`
 }
 
 func (r *siteGroupResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -89,20 +83,6 @@ func (r *siteGroupResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
-			"async_mode": schema.BoolAttribute{
-				Optional:    true,
-				Computed:    true,
-				Description: "Import group asynchronously (submit as job)",
-				PlanModifiers: []planmodifier.Bool{
-					boolplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"last_updated": schema.StringAttribute{
-				Computed: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
 		},
 	}
 }
@@ -137,9 +117,8 @@ func (r *siteGroupResource) Create(ctx context.Context, req resource.CreateReque
 	domainName := plan.DomainName.ValueString()
 	minimumSiteRole := plan.MinimumSiteRole.ValueString()
 	grantLicenseMode := plan.GrantLicenseMode.ValueString()
-	asyncMode := plan.AsyncMode.ValueBool()
 
-	createdGroup, err := siteClient.ImportGroup(plan.Name.ValueString(), domainName, minimumSiteRole, grantLicenseMode, asyncMode)
+	createdGroup, err := siteClient.ImportGroup(plan.Name.ValueString(), domainName, minimumSiteRole, grantLicenseMode, true)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error importing group",
@@ -149,7 +128,6 @@ func (r *siteGroupResource) Create(ctx context.Context, req resource.CreateReque
 	}
 
 	plan.ID = types.StringValue(GetCombinedID(createdGroup.ID, siteID))
-	plan.LastUpdated = types.StringValue(time.Now().Format(time.RFC850))
 
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
@@ -221,52 +199,10 @@ func (r *siteGroupResource) Read(ctx context.Context, req resource.ReadRequest, 
 }
 
 func (r *siteGroupResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var plan, state siteGroupResourceModel
-	req.Plan.Get(ctx, &plan)
-	req.State.Get(ctx, &state)
-
-	// Only allow updating async_mode and last_updated (state-only attributes)
-	// Check if only these attributes changed
-	if plan.Name.Equal(state.Name) &&
-		plan.Site.Equal(state.Site) &&
-		plan.DomainName.Equal(state.DomainName) &&
-		plan.MinimumSiteRole.Equal(state.MinimumSiteRole) &&
-		plan.GrantLicenseMode.Equal(state.GrantLicenseMode) {
-		// Only async_mode or last_updated changed, update state without API call
-		resp.State.Set(ctx, plan)
-		return
-	}
-
-	// If any other attribute changed, return error
 	resp.Diagnostics.AddError(
 		"Update not supported",
 		"Site groups cannot be updated. Please delete and recreate the resource.",
 	)
-}
-
-func (r *siteGroupResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
-	// If resource is being destroyed or created, no need to modify plan
-	if req.State.Raw.IsNull() || req.Plan.Raw.IsNull() {
-		return
-	}
-
-	var plan, state, config siteGroupResourceModel
-	req.Plan.Get(ctx, &plan)
-	req.State.Get(ctx, &state)
-	req.Config.Get(ctx, &config)
-
-	// If async_mode is null in state (after import), use the config value
-	if state.AsyncMode.IsNull() {
-		plan.AsyncMode = config.AsyncMode
-	} else {
-		// Preserve async_mode from state
-		plan.AsyncMode = state.AsyncMode
-	}
-
-	// Always preserve last_updated from state
-	plan.LastUpdated = state.LastUpdated
-
-	resp.Plan.Set(ctx, plan)
 }
 
 func (r *siteGroupResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
