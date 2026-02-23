@@ -242,11 +242,12 @@ func (r *siteProjectResource) Update(ctx context.Context, req resource.UpdateReq
 		return
 	}
 
+	time.Sleep(1 * time.Second)
 	updatedProject, err := siteClient.GetProject(projectID)
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error reading project",
-			"Could not read project: "+err.Error(),
+			"Error reading updated project",
+			"Could not read updated project: "+err.Error(),
 		)
 		return
 	}
