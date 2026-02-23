@@ -50,7 +50,6 @@ resource "tableau_site_group" "group_with_domain" {
 
 ### Optional
 
-- `async_mode` (Boolean) Import group asynchronously (submit as job)
 - `domain_name` (String) Active Directory domain name (auto-extracted from name if not provided)
 - `grant_license_mode` (String) Grant license mode (onLogin or onSync)
 - `minimum_site_role` (String) Minimum site role for the group
@@ -59,7 +58,6 @@ resource "tableau_site_group" "group_with_domain" {
 ### Read-Only
 
 - `id` (String) The ID of this resource.
-- `last_updated` (String)
 
 ## Import
 

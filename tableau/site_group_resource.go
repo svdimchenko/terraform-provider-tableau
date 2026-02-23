@@ -2,15 +2,13 @@ package tableau
 
 import (
 	"context"
-	"strings"
-	"time"
-
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"strings"
 )
 
 var (
@@ -34,8 +32,6 @@ type siteGroupResourceModel struct {
 	DomainName       types.String `tfsdk:"domain_name"`
 	MinimumSiteRole  types.String `tfsdk:"minimum_site_role"`
 	GrantLicenseMode types.String `tfsdk:"grant_license_mode"`
-	AsyncMode        types.Bool   `tfsdk:"async_mode"`
-	LastUpdated      types.String `tfsdk:"last_updated"`
 }
 
 func (r *siteGroupResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -87,13 +83,6 @@ func (r *siteGroupResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
-			"async_mode": schema.BoolAttribute{
-				Optional:    true,
-				Description: "Import group asynchronously (submit as job)",
-			},
-			"last_updated": schema.StringAttribute{
-				Computed: true,
-			},
 		},
 	}
 }
@@ -128,9 +117,8 @@ func (r *siteGroupResource) Create(ctx context.Context, req resource.CreateReque
 	domainName := plan.DomainName.ValueString()
 	minimumSiteRole := plan.MinimumSiteRole.ValueString()
 	grantLicenseMode := plan.GrantLicenseMode.ValueString()
-	asyncMode := plan.AsyncMode.ValueBool()
 
-	createdGroup, err := siteClient.ImportGroup(plan.Name.ValueString(), domainName, minimumSiteRole, grantLicenseMode, asyncMode)
+	createdGroup, err := siteClient.ImportGroup(plan.Name.ValueString(), domainName, minimumSiteRole, grantLicenseMode)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error importing group",
@@ -140,7 +128,6 @@ func (r *siteGroupResource) Create(ctx context.Context, req resource.CreateReque
 	}
 
 	plan.ID = types.StringValue(GetCombinedID(createdGroup.ID, siteID))
-	plan.LastUpdated = types.StringValue(time.Now().Format(time.RFC850))
 
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
@@ -362,5 +349,18 @@ func (r *siteGroupResource) ImportState(ctx context.Context, req resource.Import
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), groupName)...)
 	if siteIdentifier != "" {
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("site"), targetSiteID)...)
+	}
+
+	// Set import-related attributes from the group
+	if targetGroup.Import != nil {
+		if targetGroup.Import.DomainName != nil {
+			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("domain_name"), *targetGroup.Import.DomainName)...)
+		}
+		if targetGroup.Import.MinimumSiteRole != nil {
+			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("minimum_site_role"), *targetGroup.Import.MinimumSiteRole)...)
+		}
+		if targetGroup.Import.GrantLicenseMode != nil {
+			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("grant_license_mode"), *targetGroup.Import.GrantLicenseMode)...)
+		}
 	}
 }
