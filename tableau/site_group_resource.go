@@ -89,6 +89,7 @@ func (r *siteGroupResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 			},
 			"async_mode": schema.BoolAttribute{
 				Optional:    true,
+				Computed:    true,
 				Description: "Import group asynchronously (submit as job)",
 			},
 			"last_updated": schema.StringAttribute{
@@ -362,5 +363,18 @@ func (r *siteGroupResource) ImportState(ctx context.Context, req resource.Import
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), groupName)...)
 	if siteIdentifier != "" {
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("site"), targetSiteID)...)
+	}
+
+	// Set import-related attributes from the group
+	if targetGroup.Import != nil {
+		if targetGroup.Import.DomainName != nil {
+			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("domain_name"), *targetGroup.Import.DomainName)...)
+		}
+		if targetGroup.Import.MinimumSiteRole != nil {
+			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("minimum_site_role"), *targetGroup.Import.MinimumSiteRole)...)
+		}
+		if targetGroup.Import.GrantLicenseMode != nil {
+			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("grant_license_mode"), *targetGroup.Import.GrantLicenseMode)...)
+		}
 	}
 }
