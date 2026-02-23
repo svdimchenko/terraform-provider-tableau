@@ -118,7 +118,7 @@ func (r *siteGroupResource) Create(ctx context.Context, req resource.CreateReque
 	minimumSiteRole := plan.MinimumSiteRole.ValueString()
 	grantLicenseMode := plan.GrantLicenseMode.ValueString()
 
-	createdGroup, err := siteClient.ImportGroup(plan.Name.ValueString(), domainName, minimumSiteRole, grantLicenseMode, true)
+	createdGroup, err := siteClient.ImportGroup(plan.Name.ValueString(), domainName, minimumSiteRole, grantLicenseMode)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error importing group",

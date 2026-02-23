@@ -236,7 +236,7 @@ func (c *Client) DeleteGroup(groupID string) error {
 	return nil
 }
 
-func (c *Client) ImportGroup(name, domainName, minimumSiteRole, grantLicenseMode string, asyncMode bool) (*Group, error) {
+func (c *Client) ImportGroup(name, domainName, minimumSiteRole, grantLicenseMode string) (*Group, error) {
 	source := "ActiveDirectory"
 
 	if domainName == "" {
