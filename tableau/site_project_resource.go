@@ -191,7 +191,9 @@ func (r *siteProjectResource) Read(ctx context.Context, req resource.ReadRequest
 		state.ParentProjectID = types.StringValue(GetCombinedID(project.ParentProjectID, siteID))
 	}
 	state.OwnerID = types.StringValue(project.Owner.ID)
-	state.Description = types.StringValue(project.Description)
+	if project.Description != "" {
+		state.Description = types.StringValue(project.Description)
+	}
 	state.ContentPermissions = types.StringValue(project.ContentPermissions)
 
 	diags = resp.State.Set(ctx, &state)
@@ -226,7 +228,7 @@ func (r *siteProjectResource) Update(ctx context.Context, req resource.UpdateReq
 		}
 	}
 
-	_, err := siteClient.UpdateProject(
+	updatedProject, err := siteClient.UpdateProject(
 		projectID,
 		plan.Name.ValueString(),
 		getProjectIDFromCombinedID(plan.ParentProjectID.ValueString()),
@@ -242,21 +244,11 @@ func (r *siteProjectResource) Update(ctx context.Context, req resource.UpdateReq
 		return
 	}
 
-	updatedProject, err := siteClient.GetProject(projectID)
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error reading project",
-			"Could not read project: "+err.Error(),
-		)
-		return
-	}
-
 	plan.Name = types.StringValue(updatedProject.Name)
 	if updatedProject.ParentProjectID != "" {
 		plan.ParentProjectID = types.StringValue(GetCombinedID(updatedProject.ParentProjectID, siteID))
 	}
 	plan.OwnerID = types.StringValue(updatedProject.Owner.ID)
-	plan.Description = types.StringValue(updatedProject.Description)
 	plan.ContentPermissions = types.StringValue(updatedProject.ContentPermissions)
 	plan.LastUpdated = types.StringValue(time.Now().Format(time.RFC850))
 
