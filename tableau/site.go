@@ -8,9 +8,10 @@ import (
 )
 
 type Site struct {
-	ID         string `json:"id,omitempty"`
-	Name       string `json:"name,omitempty"`
-	ContentURL string `json:"contentUrl,omitempty"`
+	ID                string `json:"id,omitempty"`
+	Name              string `json:"name,omitempty"`
+	ContentURL        string `json:"contentUrl,omitempty"`
+	RecycleBinEnabled *bool  `json:"recycleBinEnabled,omitempty"`
 }
 
 type SiteRequest struct {
@@ -129,11 +130,12 @@ func (c *Client) GetSite(siteID string) (*Site, error) {
 	return nil, fmt.Errorf("did not find site ID %s", siteID)
 }
 
-func (c *Client) CreateSite(name, contentURL string) (*Site, error) {
+func (c *Client) CreateSite(name, contentURL string, recycleBinEnabled *bool) (*Site, error) {
 
 	newSite := Site{
-		Name:       name,
-		ContentURL: contentURL,
+		Name:              name,
+		ContentURL:        contentURL,
+		RecycleBinEnabled: recycleBinEnabled,
 	}
 	siteRequest := SiteRequest{
 		Site: newSite,
@@ -163,11 +165,12 @@ func (c *Client) CreateSite(name, contentURL string) (*Site, error) {
 	return &siteResponse.Site, nil
 }
 
-func (c *Client) UpdateSite(siteID, name, contentURL string) (*Site, error) {
+func (c *Client) UpdateSite(siteID, name, contentURL string, recycleBinEnabled *bool) (*Site, error) {
 
 	newSite := Site{
-		Name:       name,
-		ContentURL: contentURL,
+		Name:              name,
+		ContentURL:        contentURL,
+		RecycleBinEnabled: recycleBinEnabled,
 	}
 	siteRequest := SiteRequest{
 		Site: newSite,
