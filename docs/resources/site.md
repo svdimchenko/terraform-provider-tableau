@@ -15,8 +15,9 @@ Manages a Tableau site. The provider user is automatically added to the created 
 
 ```terraform
 resource "tableau_site" "test" {
-  name = "test"
-  content_url = "Moo"
+  name                = "test"
+  content_url         = "Moo"
+  recycle_bin_enabled = false # Default is false
 }
 ```
 
@@ -30,6 +31,7 @@ resource "tableau_site" "test" {
 ### Optional
 
 - `content_url` (String) The subdomain name of the site's URL. This value can contain only characters that are upper or lower case alphabetic characters, numbers, hyphens, or underscores.
+- `recycle_bin_enabled` (Boolean) Enable or disable the recycle bin for the site
 
 ### Read-Only
 

@@ -27,10 +27,11 @@ type siteResource struct {
 }
 
 type siteResourceModel struct {
-	ID          types.String `tfsdk:"id"`
-	Name        types.String `tfsdk:"name"`
-	ContentURL  types.String `tfsdk:"content_url"`
-	LastUpdated types.String `tfsdk:"last_updated"`
+	ID                types.String `tfsdk:"id"`
+	Name              types.String `tfsdk:"name"`
+	ContentURL        types.String `tfsdk:"content_url"`
+	RecycleBinEnabled types.Bool   `tfsdk:"recycle_bin_enabled"`
+	LastUpdated       types.String `tfsdk:"last_updated"`
 }
 
 func (r *siteResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -55,6 +56,11 @@ func (r *siteResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 				Optional:    true,
 				Description: "The subdomain name of the site's URL. This value can contain only characters that are upper or lower case alphabetic characters, numbers, hyphens, or underscores.",
 			},
+			"recycle_bin_enabled": schema.BoolAttribute{
+				Optional:    true,
+				Computed:    true,
+				Description: "Enable or disable the recycle bin for the site",
+			},
 			"last_updated": schema.StringAttribute{
 				Computed: true,
 			},
@@ -70,12 +76,16 @@ func (r *siteResource) Create(ctx context.Context, req resource.CreateRequest, r
 		return
 	}
 
-	site := Site{
-		Name:       plan.Name.ValueString(),
-		ContentURL: plan.ContentURL.ValueString(),
+	var recycleBinEnabled *bool
+	if !plan.RecycleBinEnabled.IsNull() {
+		v := plan.RecycleBinEnabled.ValueBool()
+		recycleBinEnabled = &v
+	} else {
+		f := false
+		recycleBinEnabled = &f
 	}
 
-	createdSite, err := r.client.CreateSite(site.Name, site.ContentURL)
+	createdSite, err := r.client.CreateSite(plan.Name.ValueString(), plan.ContentURL.ValueString(), recycleBinEnabled)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error creating site",
@@ -113,6 +123,11 @@ func (r *siteResource) Create(ctx context.Context, req resource.CreateRequest, r
 	}
 
 	plan.ID = types.StringValue(createdSite.ID)
+	if createdSite.RecycleBinEnabled != nil {
+		plan.RecycleBinEnabled = types.BoolValue(*createdSite.RecycleBinEnabled)
+	} else {
+		plan.RecycleBinEnabled = types.BoolValue(false)
+	}
 	plan.LastUpdated = types.StringValue(time.Now().Format(time.RFC850))
 
 	diags = resp.State.Set(ctx, plan)
@@ -139,6 +154,11 @@ func (r *siteResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 	state.ID = types.StringValue(site.ID)
 	state.Name = types.StringValue(site.Name)
 	state.ContentURL = types.StringValue(site.ContentURL)
+	if site.RecycleBinEnabled != nil {
+		state.RecycleBinEnabled = types.BoolValue(*site.RecycleBinEnabled)
+	} else {
+		state.RecycleBinEnabled = types.BoolValue(false)
+	}
 
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
@@ -155,12 +175,23 @@ func (r *siteResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		return
 	}
 
-	site := Site{
-		Name:       plan.Name.ValueString(),
-		ContentURL: plan.ContentURL.ValueString(),
+	var recycleBinEnabled *bool
+	if !plan.RecycleBinEnabled.IsNull() {
+		v := plan.RecycleBinEnabled.ValueBool()
+		recycleBinEnabled = &v
 	}
 
-	_, err := r.client.UpdateSite(plan.ID.ValueString(), site.Name, site.ContentURL)
+	// Authenticate to the target site before updating
+	siteClient, err := r.client.NewSiteAuthenticatedClient(plan.ID.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error authenticating to site",
+			"Could not authenticate to site for update: "+err.Error(),
+		)
+		return
+	}
+
+	_, err = siteClient.UpdateSite(plan.ID.ValueString(), plan.Name.ValueString(), plan.ContentURL.ValueString(), recycleBinEnabled)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Updating Tableau Site",
@@ -180,6 +211,11 @@ func (r *siteResource) Update(ctx context.Context, req resource.UpdateRequest, r
 
 	plan.Name = types.StringValue(updatedSite.Name)
 	plan.ContentURL = types.StringValue(updatedSite.ContentURL)
+	if updatedSite.RecycleBinEnabled != nil {
+		plan.RecycleBinEnabled = types.BoolValue(*updatedSite.RecycleBinEnabled)
+	} else {
+		plan.RecycleBinEnabled = types.BoolValue(false)
+	}
 	plan.LastUpdated = types.StringValue(time.Now().Format(time.RFC850))
 
 	diags = resp.State.Set(ctx, plan)
@@ -264,4 +300,9 @@ func (r *siteResource) ImportState(ctx context.Context, req resource.ImportState
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), targetSite.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), targetSite.Name)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("content_url"), targetSite.ContentURL)...)
+	recycleBinValue := false
+	if targetSite.RecycleBinEnabled != nil {
+		recycleBinValue = *targetSite.RecycleBinEnabled
+	}
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("recycle_bin_enabled"), recycleBinValue)...)
 }
