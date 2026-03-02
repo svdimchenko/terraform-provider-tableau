@@ -321,17 +321,17 @@ func (r *siteProjectResource) Configure(_ context.Context, req resource.Configur
 }
 
 func (r *siteProjectResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	// Import format: "projectName:siteID", "projectName:siteName", or "projectName" for default site
+	// Import format: "projectName:siteID", "projectName:siteName", "projectID:siteID", or "projectName" for default site
 	parts := strings.Split(req.ID, ":")
 	if len(parts) > 2 {
 		resp.Diagnostics.AddError(
 			"Invalid import ID",
-			"Import ID must be in format 'projectName:siteID', 'projectName:siteName', or 'projectName' for default site",
+			"Import ID must be in format 'projectName:siteID', 'projectID:siteID', 'projectName:siteName', or 'projectName' for default site",
 		)
 		return
 	}
 
-	projectName := parts[0]
+	projectIdentifier := parts[0]
 	var siteIdentifier string
 	if len(parts) == 2 {
 		siteIdentifier = parts[1]
@@ -393,7 +393,7 @@ func (r *siteProjectResource) ImportState(ctx context.Context, req resource.Impo
 
 	var targetProject *Project
 	for _, project := range projects {
-		if project.Name == projectName {
+		if project.Name == projectIdentifier || project.ID == projectIdentifier {
 			targetProject = &project
 			break
 		}
@@ -402,14 +402,14 @@ func (r *siteProjectResource) ImportState(ctx context.Context, req resource.Impo
 	if targetProject == nil {
 		resp.Diagnostics.AddError(
 			"Project not found",
-			"Project '"+projectName+"' not found in site",
+			"Project with name or ID '"+projectIdentifier+"' not found in site",
 		)
 		return
 	}
 
 	importID := GetCombinedID(targetProject.ID, targetSiteID)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), importID)...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), projectName)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), targetProject.Name)...)
 	if siteIdentifier != "" {
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("site"), targetSiteID)...)
 	}
